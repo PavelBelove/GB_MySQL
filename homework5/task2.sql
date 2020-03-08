@@ -1,19 +1,20 @@
-# 2. Таблица users была неудачно спроектирована.
+# Таблица users была неудачно спроектирована.
 # Записи created_at и updated_at были заданы типом VARCHAR
 # и в них долгое время помещались значения в формате "20.10.2017 8:10".
 # Необходимо преобразовать поля к типу DATETIME, сохранив введеные ранее значения.
 DESC users;
+SELECT * FROM users;
 
-###### Подготовка
-# В исходной базе столбцы уже в формате DATETIME, поэтому сначала перевожу в VARCHAR
+# Подготовка
+# DATETIME перевожу в VARCHAR
 ALTER TABLE users MODIFY COLUMN created_at VARCHAR(255);
 ALTER TABLE users MODIFY COLUMN updated_at VARCHAR(255);
 # Заполняю таблицу значениями в нужном формате
 UPDATE users SET created_at = DATE_FORMAT(NOW(), '%d.%m.%Y %h:%i');
 UPDATE users SET updated_at = DATE_FORMAT(NOW(), '%d.%m.%Y %h:%i');
-#################
+#
 
-###### Начало миграции
+# Преобразование таблицы
 # Добавляем вспомогательный столбец
 ALTER TABLE users ADD COLUMN temp_date VARCHAR(255);
 
@@ -32,7 +33,7 @@ UPDATE users SET created_at = FROM_UNIXTIME(UNIX_TIMESTAMP(CONCAT(
 # Переводим created_at в DATETIME
 ALTER TABLE users MODIFY COLUMN created_at DATETIME;
 
-# Теперь повторяем шаги для updated_at
+# Теперь повторяем то же самое для updated_at
 
 # Копируем в temp_date данные updated_at
 UPDATE users SET temp_date = updated_at;
@@ -52,4 +53,4 @@ ALTER TABLE users MODIFY COLUMN updated_at DATETIME;
 # Удаляем вспомогательную колонку
 ALTER TABLE users DROP COLUMN temp_date;
 
-#################
+#

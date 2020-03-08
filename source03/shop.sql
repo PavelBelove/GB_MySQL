@@ -33,7 +33,7 @@ DROP TABLE IF EXISTS products;
 CREATE TABLE products (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) COMMENT 'Название',
-  desription TEXT COMMENT 'Описание',
+  description TEXT COMMENT 'Описание',
   price DECIMAL (11,2) COMMENT 'Цена',
   catalog_id INT UNSIGNED,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -51,6 +51,9 @@ VALUES
   ('ASUS ROG MAXIMUS X HERO', 'Материнская плата ASUS ROG MAXIMUS X HERO, Z370, Socket 1151-V2, DDR4, ATX', 19310.00, 2),
   ('Gigabyte H310M S2H', 'Материнская плата Gigabyte H310M S2H, H310, Socket 1151-V2, DDR4, mATX', 4790.00, 2),
   ('MSI B250M GAMING PRO', 'Материнская плата MSI B250M GAMING PRO, B250, Socket 1151, DDR4, mATX', 5060.00, 2);
+ 
+SHOW TABLES;
+ SELECT * FROM products;
 
 DROP TABLE IF EXISTS orders;
 CREATE TABLE orders (
