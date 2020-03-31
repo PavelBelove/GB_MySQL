@@ -1,3 +1,5 @@
+
+
 DROP TRIGGER IF EXISTS check_id;
 DELIMITER //
 CREATE TRIGGER check_id BEFORE INSERT ON products

@@ -7,6 +7,8 @@
 -- Соответственно,  такие данные как никнейм или пароль будут в user. Предполагается возможность сделать заказ без регистрации, 
 -- В таком режиме база должна работать самодостаточно. 
 
+USE ketner;
+
 -- customer
 -- Таблица пользователей. 
 
@@ -32,15 +34,16 @@ CREATE TABLE `customer` (
 
 ########################################
 
--- call
--- таблица связи для model и order, в заказе может быть несколько манков.
+-- call_order
+-- таблица связи для model и orders, в заказе может быть несколько манков.
 
 
-DROP TABLE IF EXISTS `call`;
+DROP TABLE IF EXISTS `call_order`;
 
-CREATE TABLE `call` (
+CREATE TABLE `call_order` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `model_id` int(10) unsigned NOT NULL,
+  `order_id` int(10) unsigned NOT NULL,
   `item_status_id` int(10) unsigned NOT NULL,  
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -49,15 +52,15 @@ CREATE TABLE `call` (
 
 -- DESC `call`;
 
--- order
+-- orders
 -- таблица заказов.
 
 
-DROP TABLE IF EXISTS `order`;
+DROP TABLE IF EXISTS `orders`;
 
-CREATE TABLE `order` (
+CREATE TABLE `orders` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int(10) unsigned, -- NOT NULL не добавлял, возможны случаи, когда манок изготавливается не по заказу клиента, хозяина нет, а изделие должно быть учтено.
+  `customer_id` int(10) unsigned, -- NOT NULL не добавлял, возможны случаи, когда манок изготавливается не по заказу клиента, хозяина нет, а изделие должно быть учтено.
   `guid` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   `order_status_id` int(10) unsigned NOT NULL,
   `shipping_type_id` int(10) unsigned NOT NULL,  
@@ -105,11 +108,15 @@ CREATE TABLE `model` (
 
 -- operation
 -- таблица операций всех по изготовлению манков. Часть выполняются на ЧПУ, часть на другом оборудовании. 
--- Присутствует колонка управляющих программ для ЧПУ, если подразумевается этот вид обработки. Хранит ссылки на файлы.
+-- Присутствует колонка управляющих программ для ЧПУ, если подразумевается этот вид обработки. Хранит ссылки на файлы G-code.
 
 -- Обсуждавшийся вариант хранить код в git-репозитории не подошел, во-первых, по причине безмозглости станков, им нужен единственный файл.
 -- Во-вторых, репозиторий есть, но там очень много экспериментальных программ, которые в принципе не должны попасть в эту базу, не говоря о возможном заказе по ошибке.
 -- новые модели в продажу выходят не часто, требуют загрузки серий фото и полу-ручное добавление операций в базу видится оптимальным вариантом. 
+
+-- В этой части в ходе курса появилась уйма идей для оптимизации процесса производства, поэтому пока сделал минимальный работоспособный вариант.
+-- Но планирую серьезную переработку. G-code будет храниться фрагментами, либо в виде отдельных файлов, либо в базе, более подходящей для этого.
+-- Рассматриваю elasticsearch или mongo. 
 
 
 DROP TABLE IF EXISTS `operation`;
@@ -149,7 +156,7 @@ CREATE TABLE `operation_type` (
 ##################################
 -- call_type
 
-DROP TABLE IF EXISTS `calltype`;
+DROP TABLE IF EXISTS `call_type`;
 
 CREATE TABLE `call_type` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -288,7 +295,7 @@ CREATE TABLE `tool` (
 -- Графы времени создания и удаления отдельно не заводил. Данные будут совпадать с items, а для контроля не стандартных случаев есть флаг is_marriage
 
 DROP TABLE IF EXISTS `horn`; 
-DROP TABLE IF EXISTS `horn-operation`;
+DROP TABLE IF EXISTS `horn_operation`;
 
 CREATE TABLE `horn` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -300,7 +307,7 @@ CREATE TABLE `horn` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `horn-operation` (
+CREATE TABLE `horn_operation` (
   `horn_id` int(10) unsigned NOT NULL,
   `operation_id` int(10) unsigned NOT NULL,
   `tool_id` int(10) unsigned,
@@ -319,7 +326,7 @@ CREATE TABLE `horn-operation` (
 
 
 DROP TABLE IF EXISTS `mouthpiece`; 
-DROP TABLE IF EXISTS `mouthpiece-operation`;
+DROP TABLE IF EXISTS `mouthpiece_operation`;
 
 CREATE TABLE `mouthpiece` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -331,7 +338,7 @@ CREATE TABLE `mouthpiece` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `mouthpiece-operation` (
+CREATE TABLE `mouthpiece_operation` (
   `mouthpiece_id` int(10) unsigned NOT NULL,
   `operation_id` int(10) unsigned NOT NULL,
   `tool_id` int(10) unsigned,
@@ -349,7 +356,7 @@ CREATE TABLE `mouthpiece-operation` (
 -- Таблица детали и связка между деталью и операциями.
 
 DROP TABLE IF EXISTS `bone`; 
-DROP TABLE IF EXISTS `bone-operation`;
+DROP TABLE IF EXISTS `bone_operation`;
 
 CREATE TABLE `bone` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -361,7 +368,7 @@ CREATE TABLE `bone` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `bone-operation` (
+CREATE TABLE `bone_operation` (
   `bone_id` int(10) unsigned NOT NULL,
   `operation_id` int(10) unsigned NOT NULL,
   `tool_id` int(10) unsigned,
@@ -380,7 +387,7 @@ CREATE TABLE `bone-operation` (
 
 
 DROP TABLE IF EXISTS `tongue`; 
-DROP TABLE IF EXISTS `tongue-operation`;
+DROP TABLE IF EXISTS `tongue_operation`;
 
 CREATE TABLE `tongue` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -392,7 +399,7 @@ CREATE TABLE `tongue` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `tongue-operation` (
+CREATE TABLE `tongue_operation` (
   `tongue_id` int(10) unsigned NOT NULL,
   `operation_id` int(10) unsigned NOT NULL,
   `tool_id` int(10) unsigned,
@@ -412,7 +419,7 @@ CREATE TABLE `tongue-operation` (
 
 
 DROP TABLE IF EXISTS `ring`; 
-DROP TABLE IF EXISTS `ring-operation`;
+DROP TABLE IF EXISTS `ring_operation`;
 
 CREATE TABLE `ring` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -424,7 +431,7 @@ CREATE TABLE `ring` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `ring-operation` (
+CREATE TABLE `ring_operation` (
   `ring_id` int(10) unsigned NOT NULL,
   `operation_id` int(10) unsigned NOT NULL,
   `tool_id` int(10) unsigned,
@@ -442,7 +449,7 @@ CREATE TABLE `ring-operation` (
 -- Таблица детали и связка между деталью и операциями.
 
 DROP TABLE IF EXISTS `bung`; 
-DROP TABLE IF EXISTS `bung-operation`;
+DROP TABLE IF EXISTS `bung_operation`;
 
 CREATE TABLE `bung` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -454,7 +461,7 @@ CREATE TABLE `bung` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
-CREATE TABLE `bung-operation` (
+CREATE TABLE `bung_operation` (
   `bung_id` int(10) unsigned NOT NULL,
   `operation_id` int(10) unsigned NOT NULL,
   `tool_id` int(10) unsigned,
@@ -464,9 +471,9 @@ CREATE TABLE `bung-operation` (
 
 
 
--- DESC `bung`;
--- DESC `bung-operation`;
 
+
+SHOW TABLES;
 
 
 
